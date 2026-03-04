@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
-- After every meaningful change, commit locally and push to GitHub
-- Use clean, descriptive commit messages
+- Commit and push to GitHub after every meaningful unit of work — do not batch multiple unrelated changes into one commit
+- Use clean, descriptive commit messages that explain what changed and why
+- Push frequently so work is never lost and the GitHub repo always reflects current state
 - GitHub account: SinhaShambhavi — repo: https://github.com/SinhaShambhavi/tic-tac-toe
 
 ## Project Structure
