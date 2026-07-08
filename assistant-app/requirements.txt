@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn>=0.29
+apscheduler>=3.10
+anthropic>=0.40
+python-dotenv>=1.0
+requests>=2.31
+google-api-python-client>=2.120
+google-auth-oauthlib>=1.2

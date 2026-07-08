@@ -1,0 +1,6 @@
+.env
+.venv/
+__pycache__/
+data/credentials.json
+data/google_token.json
+data/briefings/
