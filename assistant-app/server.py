@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import memory
+import personal
 from integrations import weather, linear_client, github_client, google_client
 
 ROOT = Path(__file__).resolve().parent
@@ -132,6 +133,11 @@ def api_calendar():
 def api_emails():
     em = google_client.get_unread_emails()
     return JSONResponse({"connected": em is not None, "emails": em or []})
+
+
+@app.get("/api/personal")
+def api_personal():
+    return personal.snapshot()
 
 
 @app.get("/api/work")

@@ -72,6 +72,7 @@
   <button data-tab="today" class="active">Today</button>
   <button data-tab="chat">Chat</button>
   <button data-tab="memory">Memory</button>
+  <button data-tab="personal">Personal</button>
   <button data-tab="work">Work</button>
   <button data-tab="settings">Settings</button>
 </nav>
@@ -116,6 +117,18 @@
       <span id="mem-status" class="muted"></span>
     </div>
     <textarea id="mem-editor" spellcheck="false"></textarea>
+  </div>
+</section>
+
+<section id="tab-personal" class="tab">
+  <div class="card"><h2>Upcoming dates (next 45 days)</h2><div id="p-dates" class="muted">Loading…</div></div>
+  <div class="row">
+    <div class="card"><h2>Today's meals</h2><div id="p-meals" class="muted"></div></div>
+    <div class="card"><h2>Pantry — running low or out</h2><div id="p-pantry" class="muted"></div></div>
+  </div>
+  <div class="row">
+    <div class="card"><h2>Shopping list</h2><div id="p-shopping" class="muted"></div></div>
+    <div class="card"><h2>Travel</h2><div id="p-travel" class="muted"></div></div>
   </div>
 </section>
 
@@ -270,6 +283,29 @@ async function loadWork(){
     : w.github.repos.map(r=>`<b>${r.repo}</b>`+(r.open_issues.length?'<table>'+r.open_issues.map(i=>`<tr><td><a href="${i.url}" target="_blank">${i.title}</a></td><td class="muted">${i.labels.join(', ')}</td></tr>`).join('')+'</table>':' <span class="muted">— no open issues</span>')).join('<br>');
 }
 
+/* personal */
+function daysBadge(d){
+  const c = d===0 ? 'var(--bad)' : d<=7 ? 'var(--warn)' : 'var(--good)';
+  const label = d===0 ? 'TODAY' : d===1 ? 'tomorrow' : `in ${d} days`;
+  return `<span style="color:${c};font-weight:600">${label}</span>`;
+}
+async function loadPersonal(){
+  const p = await api('/personal');
+  $('p-dates').innerHTML = !p.dates.length
+    ? '<span class="muted">Nothing in the next 45 days. Add real entries in important-dates.md (Memory tab).</span>'
+    : '<table>'+p.dates.map(d=>`<tr><td>${d.date.slice(5)}</td><td>${daysBadge(d.days)}</td><td>${d.occasion}</td><td><b>${d.person}</b></td><td class="muted">${d.location}</td><td class="muted">${d.nudge}</td></tr>`).join('')+'</table>';
+  $('p-meals').innerHTML = !p.meals_today
+    ? '<span class="muted">Fill in meal-schedule.md (Memory tab).</span>'
+    : `<table><tr><td>🍳 Breakfast</td><td>${p.meals_today.breakfast}</td></tr>
+       <tr><td>🥗 Lunch</td><td>${p.meals_today.lunch}</td></tr>
+       <tr><td>🍲 Dinner</td><td>${p.meals_today.dinner}</td></tr></table>`;
+  $('p-pantry').innerHTML = !p.pantry_gaps.length
+    ? 'Fully stocked ✨'
+    : '<table>'+p.pantry_gaps.map(i=>`<tr><td>${i.item}</td><td><span class="pill ${i.status==='out'?'off':'on'}" style="${i.status==='low'?'background:rgba(224,175,104,.15);color:var(--warn)':''}">${i.status}</span></td><td class="muted">${i.notes}</td></tr>`).join('')+'</table>';
+  $('p-shopping').innerHTML = marked.parse(p.shopping_list || '_empty_');
+  $('p-travel').innerHTML = `<b>Current:</b> ${marked.parseInline(p.travel.current)}<br><b>Upcoming:</b> ${marked.parseInline(p.travel.upcoming)}`;
+}
+
 /* settings */
 async function loadStatus(){
   const s = await api('/status');
@@ -287,7 +323,7 @@ async function googleAuth(){
 }
 
 /* boot */
-loadWeather(); loadBriefing(); loadCalendar(); loadEmails(); loadMemory(); loadWork(); loadStatus();
+loadWeather(); loadBriefing(); loadCalendar(); loadEmails(); loadMemory(); loadPersonal(); loadWork(); loadStatus();
 setInterval(loadWeather, 15*60*1000);
 </script>
 </body>
