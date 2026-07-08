@@ -9,7 +9,14 @@
   :root {
     --bg:#0f1115; --panel:#181b22; --panel2:#1f232c; --line:#2a2f3a;
     --text:#e6e9ef; --dim:#8b93a3; --accent:#7aa2f7; --good:#9ece6a; --warn:#e0af68; --bad:#f7768e;
+    --on-accent:#0f1115;
   }
+  [data-theme="light"] {
+    --bg:#f4f5f8; --panel:#ffffff; --panel2:#eef0f4; --line:#dcdfe6;
+    --text:#1c2028; --dim:#5e6673; --accent:#3564d9; --good:#3d8a2f; --warn:#a8720a; --bad:#d0365a;
+    --on-accent:#ffffff;
+  }
+  body { transition: background .2s, color .2s; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--text); font:15px/1.55 -apple-system,'Segoe UI',sans-serif; }
   header { display:flex; align-items:center; gap:14px; padding:14px 22px; border-bottom:1px solid var(--line); }
@@ -24,7 +31,7 @@
   .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:16px; }
   .card h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-bottom:10px; }
   .row { display:flex; gap:16px; flex-wrap:wrap; } .row .card { flex:1; min-width:280px; }
-  button.btn { background:var(--accent); color:#0f1115; border:none; border-radius:7px;
+  button.btn { background:var(--accent); color:var(--on-accent); border:none; border-radius:7px;
     padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
   button.btn.secondary { background:var(--panel2); color:var(--text); border:1px solid var(--line); }
   button.btn:disabled { opacity:.5; cursor:wait; }
@@ -40,7 +47,7 @@
   #briefing-md ul { padding-left:20px; } #briefing-md p { margin:6px 0; }
   #chat-log { max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
   .msg { padding:10px 14px; border-radius:10px; max-width:85%; white-space:pre-wrap; }
-  .msg.me { background:var(--accent); color:#0f1115; align-self:flex-end; }
+  .msg.me { background:var(--accent); color:var(--on-accent); align-self:flex-end; }
   .msg.ai { background:var(--panel2); align-self:flex-start; }
   .msg.ai h1,.msg.ai h2,.msg.ai h3 { font-size:14px; margin:8px 0 4px; }
   .msg.ai ul { padding-left:18px; }
@@ -59,6 +66,7 @@
 <header>
   <h1>🪄 Personal Assistant</h1>
   <div id="clock"></div>
+  <button id="theme-toggle" class="btn secondary" title="Toggle theme" onclick="toggleTheme()">🌙</button>
 </header>
 <nav>
   <button data-tab="today" class="active">Today</button>
@@ -138,6 +146,15 @@
 </main>
 <script>
 const $ = id => document.getElementById(id);
+
+/* theme */
+function applyTheme(t){
+  document.documentElement.dataset.theme = t;
+  $('theme-toggle').textContent = t === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('theme', t);
+}
+function toggleTheme(){ applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'); }
+applyTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
 const api = (path, opts) => fetch('/api'+path, opts).then(r => r.json().then(j => { if(!r.ok) throw new Error(j.detail||r.status); return j; }));
 
 /* tabs */
