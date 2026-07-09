@@ -103,8 +103,11 @@
     <div id="chat-log"></div>
     <form id="chat-form" onsubmit="sendChat(event)">
       <input type="text" id="chat-input" placeholder="Tell me something or ask anything…" autocomplete="off">
+      <button class="btn secondary" type="button" id="mic-btn" onclick="toggleMic()" title="Hold a conversation — tap and speak">🎤</button>
+      <button class="btn secondary" type="button" id="tts-btn" onclick="toggleTTS()" title="Speak replies aloud">🔇</button>
       <button class="btn" type="submit">Send</button>
     </form>
+    <p id="voice-hint" class="muted" style="margin-top:8px; display:none">🎤 Listening… speak now (tap again to stop)</p>
   </div>
 </section>
 
@@ -250,7 +253,72 @@ async function sendChat(ev){
   $('chat-input').value=''; addMsg(t,'me'); addMsg('…','ai');
   try { const r = await api('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:t})});
     $('chat-log').lastChild.innerHTML = marked.parse(r.reply); loadMemFile();
+    if (ttsOn) speak(r.reply);
   } catch(e){ $('chat-log').lastChild.textContent = '⚠️ '+e.message; }
+}
+
+/* ---- voice: STT (Web Speech API) + TTS (speechSynthesis) ---- */
+let ttsOn = localStorage.getItem('tts') === 'on';
+$('tts-btn').textContent = ttsOn ? '🔊' : '🔇';
+
+function toggleTTS(){
+  ttsOn = !ttsOn;
+  localStorage.setItem('tts', ttsOn ? 'on' : 'off');
+  $('tts-btn').textContent = ttsOn ? '🔊' : '🔇';
+  if (!ttsOn) speechSynthesis.cancel();
+  else speak('Voice replies on.');
+}
+
+let voice = null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v => v.lang.startsWith('en') && /natural|neural|premium|siri|google/i.test(v.name))
+       || vs.find(v => v.lang.startsWith('en-IN'))
+       || vs.find(v => v.lang.startsWith('en')) || vs[0] || null;
+}
+speechSynthesis.onvoiceschanged = pickVoice; pickVoice();
+
+function speak(md){
+  speechSynthesis.cancel();
+  const div = document.createElement('div');
+  div.innerHTML = marked.parse(md);
+  let text = div.textContent.replace(/\(updated [^)]+\)/g, '').replace(/\s+/g, ' ').trim();
+  if (!text) return;
+  const u = new SpeechSynthesisUtterance(text.slice(0, 1200));
+  if (voice) u.voice = voice;
+  u.rate = 1.05;
+  speechSynthesis.speak(u);
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+if (!SR) { $('mic-btn').style.display = 'none'; }
+else {
+  rec = new SR();
+  rec.lang = 'en-IN'; rec.interimResults = true; rec.continuous = false;
+  rec.onresult = e => {
+    const t = Array.from(e.results).map(r => r[0].transcript).join('');
+    $('chat-input').value = t;
+    if (e.results[e.results.length-1].isFinal) {
+      stopMic();
+      if (t.trim()) { if (!ttsOn) { ttsOn = true; localStorage.setItem('tts','on'); $('tts-btn').textContent='🔊'; } sendChat(new Event('submit')); }
+    }
+  };
+  rec.onend = stopMic;
+  rec.onerror = e => { stopMic(); if (e.error !== 'aborted') $('voice-hint').style.display = 'none'; };
+}
+function toggleMic(){
+  if (!rec) return;
+  if (listening) { rec.stop(); return stopMic(); }
+  speechSynthesis.cancel();
+  listening = true; rec.start();
+  $('mic-btn').style.background = 'var(--bad)'; $('mic-btn').style.color = '#fff';
+  $('voice-hint').style.display = '';
+}
+function stopMic(){
+  listening = false;
+  $('mic-btn').style.background = ''; $('mic-btn').style.color = '';
+  $('voice-hint').style.display = 'none';
 }
 
 /* memory */
